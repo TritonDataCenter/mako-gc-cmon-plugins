@@ -9,5 +9,5 @@ to report some set of statistics that might be useful.
 ## Plugins
 
 | Name | Description |
-+------+-------------+
+| ---- | ----------- |
 | [mako_gc_files](./mako_gc_files) | Tracks the number of /var/tmp/INPUTS files and the number of lines they contain |
