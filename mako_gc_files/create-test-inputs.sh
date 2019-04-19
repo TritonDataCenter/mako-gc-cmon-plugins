@@ -32,6 +32,7 @@
 set -o errexit
 
 numInputs=$1
+system=$(uname -s)
 
 if [[ -z $numInputs || -n $2 ]]; then
     echo "Usage: $0 <numInputs>" >&2
@@ -41,14 +42,22 @@ fi
 rm -rf INPUTS
 mkdir INPUTS
 
+function newUuid() {
+    if [[ ${system} == "Darwin" ]]; then
+        uuidgen | tr [:upper:] [:lower:]
+    else
+        uuid -v 4
+    fi
+}
+
 storShard="430.stor.eu-central.scloud.host"
 morayShard="23.moray.eu-central.scloud.host"
-instanceUuid=$(uuid -v 4)
-makoUuid=$(uuid -v 4);
+instanceUuid=$(newUuid)
+makoUuid=$(newUuid);
 
 inputBase=$(pwd)/INPUTS
 instructionsBase=$(pwd)/manta_gc/mako/${storShard}
 
 seq 0 $(($numInputs - 1)) \
-    | xargs -L 1 -I '{}' echo "${instructionsBase}/$(date -u +%Y-%m-%d-%H:%M:%S)-${makoUuid}-X-$(uuid -v 4)-mako-${storShard}" \
+    | xargs -L 1 -I '{}' echo "${instructionsBase}/$(date -u +%Y-%m-%d-%H:%M:%S)-${makoUuid}-X-$(newUuid)-mako-${storShard}" \
     | split -l 100 - ${inputBase}/${storShard}-${morayShard}
