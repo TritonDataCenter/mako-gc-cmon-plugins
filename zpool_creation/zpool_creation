@@ -1,0 +1,39 @@
+#!/bin/bash
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Copyright 2019 Joyent, Inc.
+#
+#
+# Usage: zpool_creation 'global'
+#
+# This is intended to run as a cmon-agent GZ plugin in order to return the
+# creation time of the zones pool.
+#
+
+zonename=$1
+
+if [[ $zonename != "global" ]]; then
+    echo "Usage: $0 'global'" >&2
+    exit 1
+fi
+
+creation=$(sysinfo | json 'Zpool Creation')
+if [[ -z $creation || ! $creation =~ ^[0-9]+$ ]]; then
+    echo "Unable to determine zpool creation time." >&2
+    exit 2
+fi
+
+#
+# This really never should change because if the pool gets recreated, we'll have
+# to at least be restarted in which case our cache should be cleared anyway. So
+# we set a 1 day (86400s) TTL.
+#
+cat <<EOF
+ttl	option	86400
+timestamp_seconds	gauge	$creation	Number of seconds after UNIX epoch at the time of creation of the system's zpool.
+EOF
+
+exit 0
