@@ -14,7 +14,7 @@ exposes those as metrics.
 When the plugin runs successfully, it will provide the metrics that look like:
 
 ```
-$ p /opt/custom/cmon/vm-plugins/mako_bytes.sh 97d0868e-3a6d-436c-8d02-0ee988b8fc5f
+$ /opt/custom/cmon/vm-plugins/mako_bytes.sh 97d0868e-3a6d-436c-8d02-0ee988b8fc5f
 mako_logical_bytes_deleted_total        gauge   394907670057
 mako_physical_bytes_deleted_total       gauge   0
 $

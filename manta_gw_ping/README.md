@@ -28,7 +28,7 @@ Due to unfortunate behavior of SmartOS `/usr/sbin/ping` it's not possible to use
 a timeout while also gathering the response time, so this plugin only returns
 whether the gateway was reachable or not.
 
-When the plugin runs successfully, it will provide the metrics that look  like:
+When the plugin runs successfully, it will provide the metrics that look like:
 
 ```
 # /opt/custom/cmon/vm-plugins/manta_gw_ping $(vmadm lookup alias=imgapi0)
@@ -53,8 +53,8 @@ when the gateway is pinged successfully.
 
 See ["Plugins" section in cmon-agent's README.md](https://github.com/joyent/triton-cmon-agent/blob/master/docs/README.md#plugins).
 But basically you want to create a /opt/custom/cmon/vm-plugins/ directory and
-install the `manta_gw_ping` binary to it making sure to set it executable. Once
-the binary is in place and the permissions are set correctly, it should be used
+install the `manta_gw_ping` script to it making sure to set it executable. Once
+the script is in place and the permissions are set correctly, it should be used
 immediately when CMON is next queried for any zone on the system.
 
 To test that you have installed correctly you can run (on the CN where this is
