@@ -10,6 +10,7 @@ to report some set of statistics that might be useful.
 
 | Name | Description |
 | ---- | ----------- |
+| [mako_bytes](./mako_bytes) | Provides information about the number of physical/logcal bytes deleted for a Mako zone |
 | [mako_gc_files](./mako_gc_files) | Tracks the number of /var/tmp/INPUTS files and the number of lines they contain |
 | [manta_gw_ping](./manta_gw_ping) | Tracks whether a zone can ping its gateway (if it has one) |
 | [zpool_creation](./zpool_creation) | Indicates the creation time of the system's zpool (as a proxy for system age) |
