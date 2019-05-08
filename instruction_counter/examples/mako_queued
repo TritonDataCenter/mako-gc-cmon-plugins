@@ -1,0 +1,36 @@
+#!/bin/bash
+
+TARGET_ZONE="c410e3a4-c20d-4351-bd1a-76a3f58a6f68"
+TARGET_ZONE_NAME="mako"
+TARGET_STORAGE_ID="2.stor.cascadia.joyent.us"
+TARGET_DIR="/zones/$TARGET_ZONE/root/var/spool/manta_gc/instructions"
+TARGET_NEXT_STEP="processed"
+
+set -o errexit
+
+zonename=$1
+[[ $zonename != $TARGET_ZONE ]] && exit 0
+
+printf "ttl\toption\t15\n"
+
+for dir in $TARGET_DIR; do
+    if [[ -n $TARGET_STORAGE_ID ]]; then
+        storId=$TARGET_STORAGE_ID
+    else
+        storId=$(basename $dir)
+    fi
+    values=$(/opt/custom/bin/instruction_counter $dir)
+    result=$?
+    if [[ $result -ne 0 ]]; then
+        echo "Failed to count instructions: code $result" >&2
+        exit 1
+    fi
+
+    files="${values% *}"
+    lines="${values#* }"
+
+    printf "instructions{storageId=\"$storId\"}\tgauge\t$lines\tNumber of instruction lines in ${TARGET_ZONE_NAME} queue to be ${TARGET_NEXT_STEP}.\n"
+    printf "instruction_files{storageId=\"$storId\"}\tgauge\t$files\tNumber of instruction files in ${TARGET_ZONE_NAME} queue to be ${TARGET_NEXT_STEP}.\n"
+done
+
+exit 0

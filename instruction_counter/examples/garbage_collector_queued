@@ -1,0 +1,36 @@
+#!/bin/bash
+
+TARGET_ZONE="bb10d1ff-07b3-481f-b768-e4a52b617bf7"
+TARGET_ZONE_NAME="garbage-collector"
+TARGET_STORAGE_ID=""
+TARGET_DIR="/zones/$TARGET_ZONE/root/var/spool/manta_gc/mako"
+TARGET_NEXT_STEP="picked up by feeder"
+
+set -o errexit
+
+zonename=$1
+[[ $zonename != $TARGET_ZONE ]] && exit 0
+
+printf "ttl\toption\t15\n"
+
+for dir in $(find $TARGET_DIR/*.joyent.us -type d -maxdepth 1); do
+    if [[ -n $TARGET_STORAGE_ID ]]; then
+        storId=$TARGET_STORAGE_ID
+    else
+        storId=$(basename $dir)
+    fi
+    values=$(/opt/custom/bin/instruction_counter $dir)
+    result=$?
+    if [[ $result -ne 0 ]]; then
+        echo "Failed to count instructions: code $result" >&2
+        exit 1
+    fi
+
+    files="${values% *}"
+    lines="${values#* }"
+
+    printf "instructions{storageId=\"$storId\"}\tgauge\t$lines\tNumber of instruction lines in ${TARGET_ZONE_NAME} queue to be ${TARGET_NEXT_STEP}.\n"
+    printf "instruction_files{storageId=\"$storId\"}\tgauge\t$files\tNumber of instruction files in ${TARGET_ZONE_NAME} queue to be ${TARGET_NEXT_STEP}.\n"
+done
+
+exit 0
