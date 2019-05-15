@@ -19,8 +19,22 @@
  * with the first number being the number of files and the second number being
  * the number of lines.
  *
- * IMPORTANT: this does *not* do recursion. It only counts the files in the
- * specified dir.
+ * IMPORTANT: this only recurses one level. That is, if you specify a directory
+ * like:
+ *
+ *   /var/spool/manta_gc/mako
+ *
+ * it will find files in:
+ *
+ *   /var/spool/manta_gc/mako
+ *   /var/spool/manta_gc/mako/1.stor.whatever.com
+ *
+ * it will not find files in:
+ *
+ *   /var/spool/manta_gc/mako/1.stor.whatever.com/subdir
+ *
+ * Also importantly, it assumes that all files are full of lines of the same
+ * length.
  *
  */
 
@@ -34,10 +48,6 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <unistd.h>
-
-char *INPUT_FILES_HELP = "Number of files in /var/tmp/INPUT for a Mako.";
-char *INSTRUCTION_FILES_HELP =
-    "Number of instruction files listed in /var/tmp/INPUT files for a Mako.";
 
 int fileCount = 0;
 int instructionFileCount = 0;
@@ -83,32 +93,8 @@ void findLineSize(char *filename) {
     }
 }
 
-void countFile(char *dir, char *file) {
-    char filename[PATH_MAX];
+void countFile(char *filename, int size) {
     int lines;
-    int ret;
-    struct stat statbuf;
-
-    errno = 0;
-    ret = snprintf(filename, sizeof(filename), "%s/%s", dir, file);
-    if (ret < 1 || ret > sizeof(filename)) {
-        fprintf(stderr,
-            "FATAL(%d): failed to build filename string '%s/%s': %s\n",
-            ret, dir, file, strerror(errno));
-        exit(5);
-    }
-
-    errno = 0;
-    if (stat(filename, &statbuf) == -1) {
-        // Just skip this one, nothing else we can do.
-        fprintf(stderr, "Unable to stat '%s': %s\n", filename, strerror(errno));
-        return;
-    }
-
-    if ((statbuf.st_mode&S_IFMT) != S_IFREG) {
-        fprintf(stderr, "Ignoring non-file %s\n", filename);
-        return;
-    }
 
     /*
      * Per discussion among people working on GC, the paths in these files are
@@ -125,7 +111,7 @@ void countFile(char *dir, char *file) {
         }
     }
 
-    lines = statbuf.st_size / lineSize;
+    lines = size / lineSize;
 
     fileCount += 1;
     lineCount += lines;
@@ -133,15 +119,13 @@ void countFile(char *dir, char *file) {
     return;
 }
 
-int main(int argc, char *argv[]) {
+void handleDir(char *dir, int recurse) {
     DIR *dirp;
     struct dirent *dp;
-    char *dir = argv[1];
-
-    if (dir == NULL) {
-        fprintf(stderr, "Usage: %s <dir>.\n", argv[0]);
-        exit(1);
-    }
+    char filename[PATH_MAX];
+    int len;
+    int ret;
+    struct stat statbuf;
 
     errno = 0;
     if ((dirp = opendir(dir)) == NULL) {
@@ -157,22 +141,68 @@ int main(int argc, char *argv[]) {
     do {
         errno = 0;
         if ((dp = readdir(dirp)) != NULL) {
+            len = strlen(dp->d_name);
             if (dp->d_name[0] == '.') {
                 /* ignore files and dirs that start with '.' */
                 continue;
             }
-            countFile(dir, dp->d_name);
+            if (len > 4 && (strcmp(dp->d_name + (len - 4), ".tmp") == 0)) {
+                /* ignore anything that ends with .tmp */
+                continue;
+            }
+
+            errno = 0;
+            ret = snprintf(filename, sizeof(filename), "%s/%s", dir, dp->d_name);
+            if (ret < 1 || ret > sizeof(filename)) {
+                fprintf(stderr,
+                    "FATAL(%d): failed to build filename string '%s/%s': %s\n",
+                    ret, dir, dp->d_name, strerror(errno));
+                exit(5);
+            }
+
+            errno = 0;
+            if (stat(filename, &statbuf) == -1) {
+                // Just skip this one, nothing else we can do.
+                fprintf(stderr, "Unable to stat '%s': %s\n", filename, strerror(errno));
+                continue;
+            }
+
+            if ((statbuf.st_mode&S_IFMT) == S_IFDIR) {
+                if (recurse > 0) {
+                    handleDir(filename, recurse - 1);
+                    continue;
+                } else {
+                    fprintf(stderr, "Ignoring directory %s: will not recurse that deep\n", filename);
+                    continue;
+                }
+            } else if ((statbuf.st_mode&S_IFMT) != S_IFREG) {
+                fprintf(stderr, "Ignoring non-file %s\n", filename);
+                continue;
+            }
+
+            countFile(filename, statbuf.st_size);
+        }
+        if (errno != 0) {
+            fprintf(stderr, "FATAL: Error reading directory %s: %s\n", dir,
+                strerror(errno));
+            (void) closedir(dirp);
+            exit(4);
         }
     } while (dp != NULL);
 
-    if (errno != 0) {
-        fprintf(stderr, "FATAL: Error reading directory %s: %s\n", dir,
-            strerror(errno));
-        (void) closedir(dirp);
-        exit(4);
-    }
 
     (void) closedir(dirp);
+}
+
+int main(int argc, char *argv[]) {
+    char *dir = argv[1];
+
+    if (dir == NULL) {
+        fprintf(stderr, "Usage: %s <dir>.\n", argv[0]);
+        exit(1);
+    }
+
+    handleDir(dir, 1);
 
     printf("%d %d\n", fileCount, lineCount);
 
