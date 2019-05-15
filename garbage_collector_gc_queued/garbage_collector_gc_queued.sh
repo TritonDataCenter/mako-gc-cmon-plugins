@@ -35,7 +35,7 @@ fi
 
 # Check that we're dealing with a garbage-collector, we take a shortcut here to
 # cut down on processing.
-read MANTA_ROLE MANTA_STORAGE_ID <<<$(json manta_role manta_storage_id <$ZONEROOT/config/tags.json)
+read MANTA_ROLE <<<$(json manta_role <$ZONEROOT/config/tags.json)
 
 if [[ "$MANTA_ROLE" != "garbage-collector" ]]; then
     # Not a garbage-collector.
@@ -49,20 +49,17 @@ fi
 
 printf "ttl\toption\t15\n"
 
-for dir in $(find $INSTRUCTION_SPOOL/[0-9]* -maxdepth 1 -type d -not -name "*.tmp"); do
-    storId=$(basename $dir)
-    values=$(/opt/custom/bin/instruction_counter $dir)
-    result=$?
-    if [[ $result -ne 0 ]]; then
-        echo "Failed to count instructions: code $result" >&2
-        exit 1
-    fi
+values=$(/opt/custom/bin/instruction_counter $INSTRUCTION_SPOOL)
+result=$?
+if [[ $result -ne 0 ]]; then
+    echo "Failed to count instructions: code $result" >&2
+    exit 1
+fi
 
-    files="${values% *}"
-    lines="${values#* }"
+files="${values% *}"
+lines="${values#* }"
 
-    printf "instructions{storageId=\"$storId\"}\tgauge\t$lines\tNumber of instruction lines in garbage-collector zone GC queue to be sent to feeders.\n"
-    printf "instruction_files{storageId=\"$storId\"}\tgauge\t$files\tNumber of instruction files in garbage-collector zone GC queue to be sent to feeders.\n"
-done
+printf "instructions\tgauge\t$lines\tNumber of instruction lines in garbage-collector zone GC queue to be sent to feeders.\n"
+printf "instruction_files\tgauge\t$files\tNumber of instruction files in garbage-collector zone GC queue to be sent to feeders.\n"
 
 exit 0

@@ -28,21 +28,18 @@ fi
 
 printf "ttl\toption\t15\n"
 
-for dir in $(find $TARGET_DIR/[0-9]* -maxdepth 1 -type d); do
-    storId=$(basename $dir)
-    values=$(/opt/custom/bin/instruction_counter $dir)
-    result=$?
-    if [[ $result -ne 0 ]]; then
-        echo "Failed to count instructions: code $result" >&2
-        exit 1
-    fi
+values=$(/opt/custom/bin/instruction_counter $TARGET_DIR)
+result=$?
+if [[ $result -ne 0 ]]; then
+    echo "Failed to count instructions: code $result" >&2
+    exit 1
+fi
 
-    files="${values% *}"
-    lines="${values#* }"
+files="${values% *}"
+lines="${values#* }"
 
-    printf "instructions{storageId=\"$storId\"}\tgauge\t$lines\tNumber of instruction lines in feeder GC queue to be sent to mako.\n"
-    printf "instruction_files{storageId=\"$storId\"}\tgauge\t$files\tNumber of instruction files in feeder GC queue to be sent to mako.\n"
-done
+printf "instructions\tgauge\t$lines\tNumber of instruction lines in feeder GC queue to be sent to mako.\n"
+printf "instruction_files\tgauge\t$files\tNumber of instruction files in feeder GC queue to be sent to mako.\n"
 
 feeder_read_count=$(cat /zones/$TARGET_ZONE/root/var/spool/manta_gc/metrics/feeder_read_count)
 [[ -z $feeder_read_count ]] && feeder_read_count=0
