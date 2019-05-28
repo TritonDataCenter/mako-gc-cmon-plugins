@@ -11,7 +11,6 @@
 
 # This is intended to run as a cmon-agent VM plugin in order to get information
 # about the objects in a Manta Mako zone.
-#
 
 if [[ -n $TRACE ]]; then
     set -o xtrace
@@ -24,6 +23,7 @@ fi
 LABELS=""
 ZONE="$1"
 ZONEROOT="/zones/$ZONE"
+NAME=$(basename $0 .prom)
 
 METRICS_FILE="$ZONEROOT/root/var/tmp/mako_rollup/mako_rollup.out"
 
@@ -41,5 +41,4 @@ if [[ "$MANTA_ROLE" != "storage" ]]; then
     exit 0
 fi
 
-cat "$METRICS_FILE"
-
+cat "$METRICS_FILE" | sed -e "s/^\([^#]\)/plugin_${NAME}_\1/"
