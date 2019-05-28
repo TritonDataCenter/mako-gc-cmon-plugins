@@ -1,0 +1,45 @@
+#!/bin/bash
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Copyright 2019 Joyent, Inc.
+#
+#
+# Usage: mako_rollup_report.sh <zonename>
+
+# This is intended to run as a cmon-agent VM plugin in order to get information
+# about the objects in a Manta Mako zone.
+#
+
+if [[ -n $TRACE ]]; then
+    set -o xtrace
+fi
+
+if [[ -z $1 ]]; then
+    exit 0;
+fi
+
+LABELS=""
+ZONE="$1"
+ZONEROOT="/zones/$ZONE"
+
+METRICS_FILE="$ZONEROOT/root/var/tmp/mako_rollup/mako_rollup.out"
+
+if [[ ! -f $METRICS_FILE ]]; then
+    # Doesn't have a metrics file, so we don't care to ensure it's a mako zone.
+    exit 0
+fi
+
+# Check that we're dealing with a mako, we take a shortcut here to cut
+# down on processing.
+read MANTA_ROLE MANTA_STORAGE_ID <<<$(json manta_role manta_storage_id <$ZONEROOT/config/tags.json)
+
+if [[ "$MANTA_ROLE" != "storage" ]]; then
+    # Not a mako.
+    exit 0
+fi
+
+cat "$METRICS_FILE"
+
