@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2022 Joyent, Inc.
 #
 #
 # Usage: manta_gw_ping <zonename>
@@ -32,7 +32,7 @@ fi
 # result to be an IP or the stderr of `route` which we'll treat as a fatal error
 # since we don't know how to handle it.
 #
-gateway=$((route -z $zonename -n get default | awk '$1 == "gateway:" {print $2}') 2>&1)
+gateway=$( (route -z $zonename -n get default | awk '$1 == "gateway:" {print $2}') 2>&1)
 if [[ -z $gateway ]]; then
     echo "Zone $zonename has no default gateway, skipping." >&2
     exit 0
