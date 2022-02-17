@@ -6,6 +6,11 @@ This repo contains the code for cmon-agent plugins used for development and
 debugging the work on mako-gc. Each plugin lives in a subdirectory and is used
 to report some set of statistics that might be useful.
 
+These plugins aren't generally useful to Triton users without MantaV2, and
+mostly only useful to MantaV2 users needing to diagnose GC issues.
+
+Some of the plugins are under-documented.
+
 ## Plugins
 
 | Name | Description |

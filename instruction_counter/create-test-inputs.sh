@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2022 Joyent, Inc.
 #
 #
 # Usage: create-test-inputs.sh <numInputs> [<batchSize>]
@@ -39,9 +39,7 @@ if [[ -z $numInputs || -n $3 ]]; then
     exit 2
 fi
 
-if [[ -n $batchSize ]]; then
-    batchSize=$batchSize
-else
+if [[ -z $batchSize ]]; then
     batchSize=100
 fi
 
@@ -50,18 +48,17 @@ mkdir INPUTS
 
 function newUuid() {
     if [[ ${system} == "Darwin" ]]; then
-        uuidgen | tr [:upper:] [:lower:]
+        uuidgen | tr "[:upper:]" "[:lower:]"
     else
         uuid -v 4
     fi
 }
 
-storShard="430.stor.eu-central.scloud.host"
-morayShard="23.moray.eu-central.scloud.host"
-instanceUuid=$(newUuid)
+storShard="430.stor.us-east.joyent.us"
+morayShard="23.moray.us-east.joyent.us"
 makoUuid=$(newUuid);
 inputBase=$(pwd)/INPUTS
 
-seq 0 $(($numInputs - 1)) \
+seq 0 $((numInputs - 1)) \
     | xargs -L 1 -I '{}' printf "mako\t${storShard}\t${makoUuid}\t$(newUuid)\n" \
-    | split -l $batchSize - ${inputBase}/${storShard}-${morayShard}
+    | split -l "$batchSize" - "${inputBase}/${storShard}-${morayShard}"
