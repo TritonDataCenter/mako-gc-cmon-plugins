@@ -4,7 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
-# Copyright 2019 Joyent, Inc.
+# Copyright 2020 Joyent, Inc.
 #
 #
 # Usage: mako_rollup_report.sh <zonename>
@@ -20,25 +20,34 @@ if [[ -z $1 ]]; then
     exit 0;
 fi
 
-LABELS=""
 ZONE="$1"
 ZONEROOT="/zones/$ZONE"
-NAME=$(basename $0 .prom)
+NAME=$(basename "$0" .prom)
 
-METRICS_FILE="$ZONEROOT/root/var/tmp/mako_rollup/mako_rollup.out"
+# MANTA-5342 moves this to the delegated dataset, but we still want to support
+# the old location.
+METRICS_FILE1="$ZONEROOT/root/var/tmp/mako_rollup/mako_rollup.out"
+METRICS_FILE2="$ZONEROOT/root/manta/mako_rollup/mako_rollup.out"
 
-if [[ ! -f $METRICS_FILE ]]; then
+# Choose which file to use. Use only one.
+if [[ -f $METRICS_FILE2 ]]; then
+    # File exists on persistent storage, use it.
+    METRICS_FILE="$METRICS_FILE2"
+elif [[ -f $METRICS_FILE1 ]]; then
+    # File exists in tmp directory, not in persistsent storage.
+    METRICS_FILE="$METRICS_FILE1"
+else
     # Doesn't have a metrics file, so we don't care to ensure it's a mako zone.
     exit 0
 fi
 
 # Check that we're dealing with a mako, we take a shortcut here to cut
 # down on processing.
-read MANTA_ROLE MANTA_STORAGE_ID <<<$(json manta_role manta_storage_id <$ZONEROOT/config/tags.json)
+MANTA_ROLE=$(json manta_role < "$ZONEROOT/config/tags.json")
 
 if [[ "$MANTA_ROLE" != "storage" ]]; then
     # Not a mako.
     exit 0
 fi
 
-cat "$METRICS_FILE" | sed -e "s/^\([^#]\)/plugin_${NAME}_\1/"
+sed -e "s/^\([^#]\)/plugin_${NAME}_\1/" < "$METRICS_FILE"
